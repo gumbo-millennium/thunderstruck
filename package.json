@@ -1,0 +1,14 @@
+{
+  "name": "@gumbo-millennium/thunderstruck",
+  "version": "1.0.0",
+  "description": "Thunderstruck Website",
+  "license": "UNLICENSED",
+  "author": {
+    "name": "Roelof Roos",
+    "email": "github@roelofr.dev",
+    "url": "https://github.com/roelofr"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
