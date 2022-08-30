@@ -1,0 +1,4 @@
+{
+    // Ignore invalid at-rules (like @tailwind)
+    "css.lint.unknownAtRules": "ignore",
+}
