@@ -40,6 +40,16 @@ jobs:
     - name: Build application
       run: npm run build
 
+    - name: Create gzip-compressed files
+      run: find build -type f -exec gzip -9 -k \{\} \;
+
+    - name: Create brotli-compressed files
+      continue-on-error: true
+      run: |
+        sudo apt-get update
+        sudo apt-get install brotli
+        find build -type f -exec brotli -Z -k \{\} \;
+
     - name: Upload built website
       uses: actions/upload-artifact@v3
       with:
