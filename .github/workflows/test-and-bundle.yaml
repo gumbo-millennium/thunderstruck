@@ -17,6 +17,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Cache Docusaurus outputs
+      uses: actions/cache@v3
+      with:
+        path: .docusaurus
+        key: docusaurus-${{ github.ref }}
+        restore-keys: |
+          docusaurus-
+
     - name: Install NodeJS
       uses: actions/setup-node@v3
       with:
@@ -38,3 +46,38 @@ jobs:
         name: website
         path: build/
         if-no-files-found: error
+
+  deploy-acceptance:
+    name: Deploy to acceptance
+    needs:
+      - build
+
+    if: github.event_name == 'push'
+
+    uses: gumbo-millennium/thunderstruck/.github/workflows/deploy-application.yml@main
+    with:
+      environment: acceptance
+    secrets:
+      deploy_host: ${{ secrets.DEPLOY_HOST }}
+      deploy_path: ${{ secrets.DEPLOY_PATH }}
+      deploy_port: ${{ secrets.DEPLOY_PORT }}
+      deploy_ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+      deploy_user: ${{ secrets.DEPLOY_USER }}
+
+  deploy-production:
+    name: Deploy to production
+    needs:
+      - build
+      - deploy-acceptance
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    uses: gumbo-millennium/thunderstruck/.github/workflows/deploy-application.yml@main
+    with:
+      environment: production
+    secrets:
+      deploy_host: ${{ secrets.DEPLOY_HOST }}
+      deploy_path: ${{ secrets.DEPLOY_PATH }}
+      deploy_port: ${{ secrets.DEPLOY_PORT }}
+      deploy_ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+      deploy_user: ${{ secrets.DEPLOY_USER }}

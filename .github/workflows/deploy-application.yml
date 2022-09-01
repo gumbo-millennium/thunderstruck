@@ -1,0 +1,100 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Stage to deploy
+        default: acceptance
+        required: true
+        type: string
+      deploy_host:
+        description: Hostname to deploy to
+        default: localhost
+        required: false
+        type: string
+
+    secrets:
+      # Deploy data
+      deploy_host:
+        required: true
+      deploy_port:
+        required: true
+      deploy_path:
+        required: true
+      deploy_ssh_key:
+        required: true
+      deploy_user:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy application
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.url.outputs.url }}
+
+    # Only allow one deployment at any given time
+    concurrency: deployment
+
+    steps:
+      - name: Download compiled front-end
+        uses: actions/download-artifact@master
+        with:
+          name: website
+          path: build/
+
+      - name: Configure SSH connection
+        run: |
+          test -d ~/.ssh || mkdir ~/.ssh
+
+          echo "Installing deploy host key"
+          ssh-keygen -R ${{ secrets.deploy_host }} || true
+          ssh-keyscan -H -p ${{ secrets.deploy_port }} ${{ secrets.deploy_host }} >> ~/.ssh/known_hosts
+
+          echo "Installing SSH host alias"
+          echo "Host deploy_host" >> ~/.ssh/config
+          echo "    HostName ${{ secrets.deploy_host }}" >> ~/.ssh/config
+          echo "    Port ${{ secrets.deploy_port }}" >> ~/.ssh/config
+          echo "    User ${{ secrets.deploy_user }}" >> ~/.ssh/config
+          echo "    IdentityFile ~/.ssh/github-deploy-key" >> ~/.ssh/config
+
+          echo "Installing SSH key"
+          echo "${{ secrets.deploy_ssh_key }}" > ~/.ssh/github-deploy-key
+          chmod 0700 ~/.ssh
+          chmod 0600 ~/.ssh/github-deploy-key ~/.ssh/config
+
+          echo "Fingerprint of installed key:"
+          ssh-keygen -l -f ~/.ssh/github-deploy-key
+
+      - name: Create upload folder
+        id: create-upload-folder
+        run: |
+          export VERSION_PATH="${{ github.sha }}/${{ github.job }}"
+          echo "::set-output name=base_path::${{ secrets.deploy_path }}"
+          echo "::set-output name=version_path::${{ secrets.deploy_path }}/${VERSION_PATH}"
+
+          echo "Creating folder in deploy location"
+          ssh deploy_host "mkdir -p ${{ secrets.deploy_path }}/${VERSION_PATH}"
+          echo "Created upload folder ${VERSION_PATH}"
+
+      - name: Upload compiled front-end
+        run: |
+          scp -r build/* deploy_host:${{ steps.create-upload-folder.outputs.version_path }}
+          echo "Uploaded compiled front-end"
+
+      - name: Fix permissions
+        run: |
+          ssh deploy_host "chmod -R 755 ${{ steps.create-upload-folder.outputs.version_path }}"
+          echo "Fixed permissions"
+
+      - name: Switch over live version
+        run: |
+          ssh deploy_host "ln --force --no-dereference --relative --symbolic ${{ steps.create-upload-folder.outputs.version_path }} ${{ steps.create-upload-folder.outputs.base_path }}/live"
+          echo "Switched live link"
+
+      - name: Set deployment URL
+        continue-on-error: true
+        id: url
+        run: echo "::set-output name=url::https://$( ssh deploy_host "cat ${{ steps.create-upload-folder.outputs.base_path }}/DOMAIN 2>/dev/null" )"
