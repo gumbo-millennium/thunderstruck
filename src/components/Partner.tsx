@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
-export default function Partner({ children, title, image }) {
+function Partner({ children, title, image }) {
   const imageAlt = `Logo van ${title}`;
   return (
     <div className="py-12 px-4 sm:px-6 md:flex md:flex-col md:border-r md:border-indigo-900 md:py-16 md:pl-0 md:pr-10 lg:pr-16">
@@ -20,3 +21,11 @@ export default function Partner({ children, title, image }) {
     </div>
   );
 }
+
+Partner.propTypes = {
+  children: PropTypes.element.isRequired,
+  title: PropTypes.string.isRequired,
+  image: PropTypes.string.isRequired,
+}
+
+export default Partner;

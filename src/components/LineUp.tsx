@@ -1,6 +1,8 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
-export default function LineUp({ children, title, embed, image }) {
+// eslint-disable-next-line no-unused-vars
+function LineUp ({ children, title, image, embed }) {
   const imageTitle = `Logo van ${title}`;
   return (
     <li>
@@ -19,3 +21,12 @@ export default function LineUp({ children, title, embed, image }) {
     </li>
   );
 }
+
+LineUp.propTypes = {
+  children: PropTypes.element.isRequired,
+  title: PropTypes.string.isRequired,
+  image: PropTypes.string.isRequired,
+  embed: PropTypes.string,
+}
+
+export default LineUp;
